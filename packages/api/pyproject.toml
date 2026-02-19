@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "crack-time-api"
+version = "0.1.0"
+description = "FastAPI server for the password crack-time simulator"
+requires-python = ">=3.10"
+dependencies = [
+    "crack-time",
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "pydantic>=2.0",
+]
+
+[project.scripts]
+crack-time-api = "crack_time_api.app:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/crack_time_api"]

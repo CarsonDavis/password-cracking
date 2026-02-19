@@ -2,18 +2,35 @@
 
 A tool that estimates how long a password would take to crack by modeling **all realistic attack strategies simultaneously** and returning the minimum time across all of them.
 
-## The Problem
+## Quick Start
 
-Every existing password strength tool evaluates from a single attack perspective. No production tool models dictionary attacks, rule-based mangling, Markov chains, PCFG, keyboard walks, breach lookups, and brute force simultaneously. This simulator does.
+### Prerequisites
+- Python 3.10+ with [uv](https://docs.astral.sh/uv/)
+- Node.js 18+ (for the web frontend)
+
+### Install & Run
+
+```bash
+# Install Python dependencies
+uv sync --all-packages
+
+# Run the CLI
+uv run crack-time estimate "password" --hash bcrypt_cost12 --hardware consumer
+
+# Start the API server
+uv run crack-time-api    # http://localhost:8000
+
+# Start the web frontend (in a second terminal)
+cd packages/web && npm install && npm run dev    # http://localhost:5173
+```
 
 ## The Core Formula
 
 ```
 crack_time = min(
-    time_breach_lookup,   time_dictionary,     time_rule_based,
-    time_combinator,      time_hybrid,         time_mask,
-    time_keyboard_walk,   time_prince,         time_pcfg,
-    time_markov,          time_neural,         time_brute_force
+    time_dictionary,     time_mask,           time_keyboard_walk,
+    time_date,           time_sequence,       time_repeat,
+    time_l33t,           time_brute_force
 )
 ```
 
@@ -22,51 +39,78 @@ Each `time_X = guess_number_X / hash_rate`, where hash rate depends on the hash 
 ## Example Output
 
 ```
-$ crack-time estimate "Summer2024!" --hash bcrypt_cost12 --hardware rig_8x_rtx4090
+$ uv run crack-time estimate "Summer2024!" --hash bcrypt_cost12 --hardware consumer
 
-Crack Time:   ~1.4 hours
-Rating:       WEAK (1/4)
-Winner:       Hybrid attack (dictionary + mask ?d?d?d?d?s)
+Password:     'Summer2024!'
+Hash:         bcrypt_cost12
+Hardware:     consumer (1,437 H/s effective)
+
+Crack Time:   ~...
+Rating:       ... (X/4)
+Winner:       ...
 ```
 
-## Status
+## Repository Structure
 
-**Research complete, implementation planned.** Eight research reports are done. The architecture, estimator specifications, and four-phase implementation roadmap are documented.
+```
+password-cracking/                      # monorepo root
+├── pyproject.toml                      # uv workspace coordinator
+├── data/                               # shared data assets
+│   ├── hash_rates.json
+│   ├── l33t_table.json
+│   ├── keyboards/                      # qwerty.json, dvorak.json, keypad.json
+│   ├── masks/                          # common_masks.json
+│   └── wordlists/                      # common_passwords.txt, english_words.txt, etc.
+│
+├── docs/                               # specification & research docs
+│   ├── index.md
+│   ├── 01-project-overview.md ... 10-references.md
+│   └── research/                       # 8 research reports
+│
+├── packages/
+│   ├── crack-time/                     # core Python library
+│   │   ├── pyproject.toml
+│   │   ├── src/crack_time/             # analysis, estimators, decomposition, hardware, output
+│   │   └── tests/
+│   │
+│   ├── api/                            # FastAPI server
+│   │   ├── pyproject.toml
+│   │   ├── src/crack_time_api/         # app, schemas, routers
+│   │   └── tests/
+│   │
+│   └── web/                            # SvelteKit frontend
+│       ├── package.json
+│       ├── src/                        # routes, components, stores
+│       └── static/
+│
+└── reference/                          # external tools (gitignored)
+```
 
 ## Documentation
 
 All project documentation lives in [`docs/`](docs/index.md):
 
-- [Project Overview](docs/01-project-overview.md) — What and why
-- [Requirements](docs/02-requirements.md) — Formal FR/NFR specs
-- [Use Cases](docs/03-use-cases.md) — 7 usage scenarios
-- [Architecture](docs/04-architecture.md) — System design and package structure
-- [Estimator Specs](docs/05-estimator-specs.md) — 15 attack estimators + DP engine
-- [Data & Models](docs/06-data-and-models.md) — External data requirements
-- [Implementation Roadmap](docs/07-implementation-roadmap.md) — 4-phase build plan
-- [Validation Strategy](docs/08-validation-strategy.md) — Test methodology and output format
-- [Open Questions](docs/09-open-questions.md) — Unresolved design decisions
-- [References](docs/10-references.md) — Papers, tools, benchmarks
-- [Research Reports](docs/research/) — 8 in-depth research studies
+- [Project Overview](docs/01-project-overview.md)
+- [Requirements](docs/02-requirements.md)
+- [Use Cases](docs/03-use-cases.md)
+- [Architecture](docs/04-architecture.md)
+- [Estimator Specs](docs/05-estimator-specs.md)
+- [Data & Models](docs/06-data-and-models.md)
+- [Implementation Roadmap](docs/07-implementation-roadmap.md)
+- [Validation Strategy](docs/08-validation-strategy.md)
+- [Open Questions](docs/09-open-questions.md)
+- [References](docs/10-references.md)
+- [Research Reports](docs/research/)
 
-## Key Research Findings
+## Development
 
-- **Hash algorithm dominates:** MD5 to bcrypt cost=12 is ~114 million times slower. Hash choice matters more than attacker hardware.
-- **Min-auto validated:** The minimum-across-all-strategies approach appears independently in CMU, zxcvbn, and the academic literature.
-- **15 attack techniques:** Real cracking uses a four-phase pipeline from instant lookups to exhaustive brute force.
-- **All reference tools are Python:** Confirms Python 3.10+ as the implementation language.
+```bash
+# Terminal 1 — API server
+uv run crack-time-api
 
-## Repository Structure
+# Terminal 2 — Frontend dev server
+cd packages/web && npm run dev
 
-```
-password-cracking/
-├── README.md                          ← You are here
-├── PROJECT.md                         ← Original project definition
-├── docs/                              ← All documentation
-│   ├── index.md                       ← Documentation hub
-│   ├── 01-project-overview.md
-│   ├── ...
-│   └── research/                      ← 8 research reports
-├── analytic-password-cracking/        ← UChicago tool (external repo)
-└── mxr-m301-bass-synth/              ← Unrelated (separate project)
+# Terminal 3 — Run all Python tests
+uv run pytest
 ```

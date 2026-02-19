@@ -1,24 +1,18 @@
-[build-system]
-requires = ["setuptools>=68.0", "setuptools-scm"]
-build-backend = "setuptools.build_meta"
-
 [project]
-name = "crack-time"
+name = "password-cracking-workspace"
 version = "0.1.0"
-description = "Password crack-time simulator with analytical estimators"
+description = "Password crack-time simulator monorepo"
 requires-python = ">=3.10"
-dependencies = [
-    "click>=8.0",
-]
 
-[project.scripts]
-crack-time = "crack_time.cli:main"
+[dependency-groups]
+dev = ["pytest>=7.0", "httpx>=0.27.0"]
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.uv.workspace]
+members = ["packages/crack-time", "packages/api"]
 
-[tool.setuptools.package-data]
-crack_time = ["../../data/**/*"]
+[tool.uv.sources]
+crack-time = { workspace = true }
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["packages/crack-time/tests", "packages/api/tests"]
+addopts = "--import-mode=importlib"

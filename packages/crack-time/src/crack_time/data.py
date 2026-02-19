@@ -3,10 +3,26 @@
 from __future__ import annotations
 
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+
+def _find_data_dir() -> Path:
+    """Locate the data directory by env var or walking up from this file."""
+    env_dir = os.environ.get("CRACK_TIME_DATA_DIR")
+    if env_dir:
+        return Path(env_dir)
+    current = Path(__file__).resolve().parent
+    for _ in range(10):
+        candidate = current / "data"
+        if candidate.is_dir() and any(candidate.iterdir()):
+            return candidate
+        current = current.parent
+    raise FileNotFoundError("Cannot find data directory. Set CRACK_TIME_DATA_DIR.")
+
+
+DATA_DIR = _find_data_dir()
 
 
 class Wordlist:
