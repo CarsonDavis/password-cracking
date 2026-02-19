@@ -16,12 +16,12 @@ Detailed specifications for each attack estimator and the dynamic programming de
 | Rule-based | Analytical: rule inversion | UChicago | Wordlist + rule files | O(num_rules) per password | 2 |
 | Combinator | Analytical: rank1 x rank2 | Techniques report | Wordlist(s) | O(n) split points | 2 |
 | Hybrid | Analytical: dict_rank x mask_keyspace | Techniques report | Wordlist + mask patterns | O(n) split points | 2 |
-| L33t variants | Analytical: dict_rank x l33t_vars | zxcvbn | Substitution table + wordlist | O(2^k) for k subs | 2 |
+| L33t variants | Analytical: dict_rank x l33t_vars | zxcvbn | Substitution table + wordlist | O(2^k) for k subs | 1 |
 | PCFG | Precomputed table: P(pw) -> rank | PCFG Cracker | Trained grammar + lookup table | O(1) after precomputation | 2 |
 | Markov | Level-based: level -> approx rank | OMEN | Trained n-gram tables | O(n) per password | 2 |
 | PRINCE | Analytical: product of word ranks | Techniques report | Wordlist with frequencies | O(n) split points | 3 |
 | Repeat detection | Analytical: base_guesses x count | zxcvbn | Recursive analysis of base | O(n) | 1 |
-| Breach lookup | Set membership: O(1) | HIBP / breach data | Breach password set or Bloom filter | O(1) | 1 |
+| Breach lookup | Set membership: O(1) | HIBP / breach data | Breach password set or Bloom filter | O(1) | 2 |
 | Neural | Monte Carlo: P(pw) -> CDF rank | CMU neural | Trained model + sample CDF | O(log n) lookup | 4 |
 
 ## Pseudocode for Key Estimators
@@ -82,6 +82,244 @@ def estimate_combinator_attack(password, wordlist):
             best_guess = min(best_guess, guess)
     return best_guess
 ```
+
+### Hybrid (dictionary + mask suffix/prefix)
+
+The hybrid estimator models Hashcat mode 6 (wordlist + mask) and mode 7 (mask + wordlist). It splits the password into a dictionary word and a mask-described suffix or prefix. The suffix/prefix keyspace is computed from per-position character classes, identical to the mask estimator.
+
+```python
+def estimate_hybrid_attack(password, wordlist):
+    """Try all splits where one part is a dictionary word and the other
+    is a mask-described suffix or prefix.
+
+    Modes:
+      - Mode 6 (dict + suffix): password = dict_word + suffix
+      - Mode 7 (prefix + dict): password = prefix + dict_word
+
+    For each valid split, guess_number = dict_rank × suffix_keyspace.
+    An attacker iterates over the wordlist and for each word tries all
+    mask candidates, so position = rank × keyspace + mask_position.
+    We conservatively use rank × keyspace (ignoring mask_position ordering)."""
+
+    best_guess = float('inf')
+
+    # Mode 6: dictionary word as prefix, mask suffix
+    for split in range(1, len(password)):
+        word_part = password[:split]
+        suffix = password[split:]
+        word_lower = word_part.lower()
+        if word_lower in wordlist:
+            rank = wordlist.rank(word_lower)
+            # Account for uppercase variations of the dictionary word
+            case_vars = uppercase_variations(word_part)
+            suffix_keyspace = mask_keyspace(suffix)  # product of per-char class sizes
+            guess = rank * case_vars * suffix_keyspace
+            best_guess = min(best_guess, guess)
+
+    # Mode 7: mask prefix, dictionary word as suffix
+    for split in range(1, len(password)):
+        prefix = password[:split]
+        word_part = password[split:]
+        word_lower = word_part.lower()
+        if word_lower in wordlist:
+            rank = wordlist.rank(word_lower)
+            case_vars = uppercase_variations(word_part)
+            prefix_keyspace = mask_keyspace(prefix)
+            guess = rank * case_vars * prefix_keyspace
+            best_guess = min(best_guess, guess)
+
+    return best_guess
+
+def mask_keyspace(segment: str) -> int:
+    """Compute the keyspace for a mask-described segment.
+    Each position contributes its character class size."""
+    keyspace = 1
+    for c in segment:
+        if c.islower():   keyspace *= 26
+        elif c.isupper(): keyspace *= 26
+        elif c.isdigit():  keyspace *= 10
+        else:              keyspace *= 33  # special characters
+    return keyspace
+```
+
+**Note on infix patterns:** Patterns like `prefix + dict_word + suffix` (e.g., "123monkey!") are not modeled by the hybrid estimator. These are partially covered by the DP decomposition engine, which can combine a brute-force/sequence prefix match with a dictionary match and a brute-force suffix. A dedicated three-part hybrid estimator could be added in a future version if validation shows significant gaps.
+
+### PRINCE (multi-word probability-ordered concatenation)
+
+The PRINCE estimator models the [PRINCE attack](https://hashcat.net/events/p14-trondheim/prince-attack.pdf), which concatenates multiple dictionary words in probability order. Unlike the combinator attack (which concatenates exactly two words), PRINCE supports 2+ words and orders candidates by the product of word frequencies, producing high-probability guesses first.
+
+```python
+def estimate_prince_attack(password, wordlist, max_words=4):
+    """Try all multi-word splits (2, 3, or 4 words) of the password.
+
+    For each valid split into dictionary words:
+      probability = product of word frequencies (freq = 1/rank approximation)
+      guess_number = estimated position in PRINCE ordering
+
+    PRINCE ordering differs from combinator in two key ways:
+      1. It supports 3+ word splits, not just 2
+      2. Candidates are ordered by total probability (product of word freqs),
+         not by iterating word1 × word2 sequentially
+
+    The position in PRINCE order is estimated by counting how many multi-word
+    combinations have higher total probability."""
+
+    best_guess = float('inf')
+
+    for num_words in range(2, max_words + 1):
+        for split_points in generate_splits(password, num_words):
+            words = extract_words(password, split_points)
+            if not all(w.lower() in wordlist for w in words):
+                continue
+
+            ranks = [wordlist.rank(w.lower()) for w in words]
+
+            # PRINCE position estimation:
+            # The product of ranks approximates position in probability-sorted order.
+            # For 2 words: similar to combinator but with probability ordering.
+            # For 3+ words: product of all ranks.
+            guess = 1
+            for rank in ranks:
+                guess *= rank
+
+            # Account for uppercase variations of each word
+            for w in words:
+                guess *= uppercase_variations(w)
+
+            best_guess = min(best_guess, guess)
+
+    return best_guess
+
+def generate_splits(password, num_words):
+    """Generate all ways to split password into num_words non-empty parts.
+    Returns lists of split point indices."""
+    from itertools import combinations
+    n = len(password)
+    if num_words > n:
+        return
+    for split_indices in combinations(range(1, n), num_words - 1):
+        yield list(split_indices)
+
+def extract_words(password, split_points):
+    """Extract word segments from password given split points."""
+    points = [0] + split_points + [len(password)]
+    return [password[points[i]:points[i+1]] for i in range(len(points) - 1)]
+```
+
+**Separator handling:** Common passphrases use separators between words (e.g., `correct-horse-battery-staple`). The PRINCE estimator handles separators as follows:
+
+```python
+SEPARATORS = ['-', '.', '_', ' ', '']  # common passphrase separators + no separator
+
+def estimate_prince_with_separators(password, wordlist, max_words=4):
+    """Extended PRINCE estimation that detects and accounts for separators.
+
+    For each candidate separator character:
+      1. Split the password on that separator
+      2. Check if all segments are dictionary words
+      3. Compute guess number as product of ranks × separator_multiplier
+
+    The separator_multiplier accounts for the attacker trying multiple separators.
+    With 4 common separators + no separator, the attacker's search space grows by ~5x
+    per word boundary, but this is small compared to the dictionary keyspace."""
+
+    best_guess = float('inf')
+
+    for sep in SEPARATORS:
+        if sep == '':
+            # No separator: fall through to unseparated PRINCE estimation
+            guess = estimate_prince_attack(password, wordlist, max_words)
+        else:
+            parts = password.split(sep)
+            if len(parts) < 2 or len(parts) > max_words:
+                continue
+            if not all(p.lower() in wordlist for p in parts):
+                continue
+
+            ranks = [wordlist.rank(p.lower()) for p in parts]
+            guess = 1
+            for rank in ranks:
+                guess *= rank
+            for p in parts:
+                guess *= uppercase_variations(p)
+
+            # Separator cost is negligible — attacker tries all separators per word combo.
+
+        best_guess = min(best_guess, guess)
+
+    return best_guess
+```
+
+### Neural (Monte Carlo CDF estimation)
+
+The neural estimator uses a character-level language model trained on password data to estimate the probability of a given password, then converts that probability to a guess number using a precomputed CDF.
+
+**Model architecture:**
+```
+Character-level LSTM
+  - Vocabulary: 95 printable ASCII characters + start/end tokens (97 total)
+  - Embedding dimension: 32
+  - Hidden layers: 2 LSTM layers
+  - Hidden size: 512 units per layer
+  - Output: softmax over vocabulary at each position
+  - Training: cross-entropy loss on password corpora (RockYou or similar)
+  - Dropout: 0.2 between LSTM layers
+```
+
+**Probability computation:**
+```python
+def neural_password_probability(password, model):
+    """Compute P(password) under the neural model.
+    P(password) = product of P(char_i | char_1..char_{i-1}) for all positions,
+    including the end-of-password token."""
+    log_prob = 0.0
+    hidden = model.init_hidden()
+    prev_char = START_TOKEN
+    for char in password + END_TOKEN:
+        char_probs, hidden = model.forward(prev_char, hidden)
+        log_prob += math.log(char_probs[char])
+        prev_char = char
+    return math.exp(log_prob)
+```
+
+**Monte Carlo guess-number estimation (from CMU):**
+
+The key insight from the [CMU guess-calculator analysis](research/cmu-guess-calculator/report.md) is that a password's guess number under an optimal attacker equals its rank when all passwords are sorted by probability. Since we can't enumerate all passwords, we estimate the rank using Monte Carlo sampling:
+
+```python
+def estimate_neural_guess_number(password, model, sample_cdf):
+    """Convert neural model probability to an estimated guess number.
+
+    1. Compute P(password) under the model
+    2. Look up P in the precomputed sample CDF to find the estimated rank
+
+    The sample CDF is built offline by:
+      a. Sampling N passwords from the model (N = 10^7 to 10^8)
+      b. Computing P(sample) for each
+      c. Sorting by descending probability
+      d. Building a (log_prob -> cumulative_count) lookup table
+      e. Extrapolating beyond the sample using the observed distribution tail
+
+    At query time, binary search in the CDF table gives the rank estimate.
+    """
+    prob = neural_password_probability(password, model)
+    log_prob = math.log10(prob)
+
+    # Binary search in precomputed CDF: find how many sampled passwords
+    # have probability >= this password's probability
+    rank = sample_cdf.interpolate(log_prob)
+    return rank
+```
+
+**CDF precomputation parameters:**
+- Sample count: 10^7 minimum, 10^8 for production accuracy
+- Storage format: sorted array of `(log10_probability, cumulative_count)` pairs, ~100K entries after binning
+- Storage size: ~10 MB for the binned CDF table
+- Tail extrapolation: log-linear fit beyond the lowest-probability sample
+
+**Training data:** The model should be trained on a large password corpus (e.g., RockYou 14M passwords). Training details: batch size 128, learning rate 0.001 with Adam optimizer, train for 10-20 epochs until validation loss plateaus. The model file is ~10-50 MB depending on hidden size.
+
+**Note:** The neural estimator is Phase 4 (optional). It requires PyTorch or TensorFlow as an optional dependency, violating the "stdlib + numpy only" core constraint (NFR-011). It should be an optional install: `pip install crack-time[neural]`.
 
 ## Estimator Implementation Notes
 
@@ -149,6 +387,38 @@ def mask_guesses(password: str) -> int:
 ```
 
 Note: This is strictly less than brute force when the password mixes character classes (mask uses per-position class size; brute force uses the union). A password like "aaa111" has mask keyspace 26^3 * 10^3 = 17.6M vs. brute force keyspace 36^6 = 2.2B. Mask attack wins because the attacker can observe the structural pattern.
+
+**Mask pattern library integration:** The [mask pattern library](06-data-and-models.md#mask-pattern-library-json) (`data/masks/common_masks.json`) contains frequency data from PACK analysis of real breach data, showing how often each mask pattern appears in practice. A real attacker tries the most common masks first, so passwords matching common masks are cracked sooner. The mask estimator should use this library for **attacker-priority-aware estimation**:
+
+```python
+def mask_guesses_with_priority(password: str, mask_library: list[dict]) -> int:
+    """Compute mask attack guess number accounting for attacker priority ordering.
+
+    A real attacker iterates masks in frequency order (most common first).
+    For a password matching mask M at position P in the attacker's priority list,
+    the guess number is: sum of keyspaces of all masks tried before M, plus
+    the position within mask M's keyspace.
+
+    If the password's mask is not in the library, fall back to pure keyspace
+    calculation (the attacker tries it after exhausting all known common masks)."""
+
+    password_mask = ''.join(char_to_mask_class(c) for c in password)
+    password_keyspace = mask_guesses(password)
+
+    # mask_library is sorted by descending frequency (attacker tries common first)
+    cumulative_guesses = 0
+    for entry in mask_library:
+        if entry['mask'] == password_mask:
+            # Password's mask found in library. Attacker reaches this mask
+            # after trying all higher-priority masks. Position within this
+            # mask is conservatively estimated as keyspace/2 (average case).
+            return cumulative_guesses + password_keyspace // 2
+        cumulative_guesses += entry['keyspace']
+
+    # Mask not in library: attacker tries it after all library masks.
+    # Fall back to pure keyspace (conservative upper bound).
+    return password_keyspace
+```
 
 ### Date (segment-level)
 
@@ -315,6 +585,37 @@ def spatial_guesses(length: int, turns: int, shifted: int,
 | Breach lookup | Exact (set membership) | 100% (if in database) | Previously compromised passwords |
 
 The simulator should report confidence levels alongside estimates, distinguishing exact results from approximations.
+
+---
+
+## Match Lifecycle: Analyzer → Estimator → DP
+
+Understanding who creates, owns, and consumes `Match` objects is critical to implementing the pipeline correctly. This section clarifies the flow:
+
+```
+Step 1: Analyzer creates Match objects (pattern metadata, no guess counts)
+         ↓
+Step 2: Segment-level estimators receive matches via PasswordAnalysis,
+         compute match.guesses, and return them in EstimateResult.matches
+         ↓
+Step 3: Orchestrator pools all EstimateResult.matches from all estimators
+         ↓
+Step 4: DP engine consumes the pooled matches to find optimal decomposition
+```
+
+**Detailed flow:**
+
+1. **Analyzer creates matches:** The shared `PasswordAnalyzer` runs all detection steps (dictionary substring matching, keyboard walk detection, sequence detection, date detection, repeat detection, l33t detection). Each detector emits typed `Match` subclass instances (`DictionaryMatch`, `KeyboardWalkMatch`, etc.) with pattern metadata populated (`i`, `j`, `token`, `rank`, `graph`, etc.) but `guesses` set to 0.
+
+2. **Analyzer stores matches in `PasswordAnalysis.matches`:** All detected matches from all detectors are stored in a flat list. This is the canonical source of detected patterns.
+
+3. **Estimators compute guess counts:** Each segment-level estimator iterates over the relevant matches in `analysis.matches` (filtering by type), computes `guesses` for each match using its formula (e.g., `rank * uppercase_variations * l33t_variations` for dictionary), and returns the scored matches in `EstimateResult.matches`. The estimator does **not** modify `analysis.matches` in place — it returns copies or the same objects with `guesses` set.
+
+4. **Orchestrator pools matches:** The orchestrator collects `EstimateResult.matches` from all segment-level estimators into a single pool. If the same substring `[i,j]` is matched by multiple estimators (e.g., dictionary and keyboard walk both match `[0,5]`), both matches appear in the pool with their respective `guesses` values. The DP will select whichever yields fewer total guesses.
+
+5. **DP consumes the pool:** The DP engine takes the pooled matches and finds the optimal non-overlapping decomposition using only `m.i`, `m.j`, and `m.guesses`.
+
+**Key clarification:** `PasswordAnalysis.matches` holds the *detected patterns* (pre-estimation). `EstimateResult.matches` holds the *scored patterns* (post-estimation). The DP consumes only the scored versions.
 
 ---
 

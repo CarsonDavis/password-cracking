@@ -24,19 +24,23 @@ What password corpus should we train on? RockYou is the academic standard but is
 
 A Bloom filter for 600M passwords at 1% false positive rate is ~700 MB. An exact sorted binary file is larger but has zero false positives. Which tradeoff is better for the simulator?
 
-### 4. Rule file scope
+### ~~4. Rule file scope~~ → Resolved
 
 Should we support the full Hashcat rule language (50+ operations) or start with the subset used by best64.rule (~20 operations)? The full language is significantly more engineering effort.
 
-### 5. Password decomposition conflicts
+**Resolution:** Start with the subset used by best64.rule (Phase 2, deliverable #8 specifies "at minimum: best64.rule" with ~20 operations: `l, u, c, $X, ^X, r, sXY, DN, iNX, oNX, TN, d, [, ]`). The full Hashcat rule language can be extended incrementally in later phases. See [Implementation Roadmap — Phase 2](07-implementation-roadmap.md) deliverable #8.
+
+### ~~5. Password decomposition conflicts~~ → Resolved
 
 When the DP decomposition and individual estimators disagree (e.g., the DP says the optimal split is "pass" + "word123" but the rule estimator finds "password" + append "123" faster), how do we reconcile?
 
-**Proposed resolution:** The DP should incorporate rule-based matches as first-class edges.
+**Resolution:** The min-auto ensemble already handles this correctly. Rule-based estimation is classified as **whole-password** (see [Estimator Specs — Estimator Classification](05-estimator-specs.md#estimator-classification-segment-level-vs-whole-password)). The final crack time is `min(dp_optimal_guesses, rule_based_guesses, ...)`. If the rule estimator finds "password" + rules faster than the DP's segmented decomposition, the rule estimate wins via the `min()`. No DP modification is needed — the two approaches compete at the top level, not within the DP.
 
-### 6. Online vs. offline mode
+### ~~6. Online vs. offline mode~~ → Resolved
 
 Should the simulator support online mode (rate-limited login attempts, ~100/hour) in addition to offline hash cracking? zxcvbn does; it's simple to add but changes the interpretation significantly.
+
+**Resolution:** Offline only for v1. The entire architecture (hardware tiers, hash rate benchmarks, GPU-based cracking model) is designed around offline hash cracking. Online rate-limited estimation could be added as a separate mode in a future version by simply dividing guess numbers by the rate limit (e.g., 100/hour), but this is out of scope for the initial release.
 
 ### 7. Internationalization
 
@@ -54,9 +58,11 @@ How should we handle multi-word passphrases with separators (e.g., "correct-hors
 
 Should the simulator report confidence intervals for probabilistic estimates (PCFG, Markov, Monte Carlo), or just point estimates? Confidence intervals add complexity but honestly communicate uncertainty.
 
-### 11. Scoring thresholds
+### ~~11. Scoring thresholds~~ → Resolved
 
 zxcvbn uses fixed guess-count thresholds (10^3, 10^6, 10^8, 10^10) for its 0--4 score. Should we adopt the same thresholds, or should our thresholds be hash-algorithm-aware (since the same guess count means very different things for MD5 vs. bcrypt)?
+
+**Resolution:** Use **time-based thresholds** that automatically scale with hash algorithm and hardware tier. The canonical thresholds are defined in terms of crack time (< 1 minute, < 1 day, < 1 year, < 100 years), and guess-count thresholds are derived dynamically from the effective hash rate. See [Validation Strategy — Strength Rating Scaling](08-validation-strategy.md#strength-rating-scaling-across-hashhardware-combinations) for the scaling formula and examples.
 
 ### 12. NIST alignment
 

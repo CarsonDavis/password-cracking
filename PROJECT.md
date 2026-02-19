@@ -121,7 +121,7 @@ Input: password string + hardware config + hash algorithm
    - KeyboardWalkEstimator
    - BreachLookupEstimator
    - HybridEstimator
-   - PolicyFingerprintEstimator
+   - ~~PolicyFingerprintEstimator~~ (Dropped: subsumed by the mask estimator, which models policy-constrained brute force via per-position character class keyspace. A dedicated policy fingerprint estimator added minimal value over mask + brute-force estimation.)
 
 3. Hardware Speed Calculator
    - Maps (hash_algorithm, gpu_model, gpu_count) -> hashes/second

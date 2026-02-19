@@ -46,6 +46,8 @@ Formal functional and non-functional requirements for the Password Crack-Time Si
 | FR-024 | Convert guess numbers to wall-clock time using configurable hardware hash rates | Research: benchmarks | Must |
 | FR-025 | Detect and handle l33t-speak substitutions with binomial variation counting | Research: zxcvbn | Must |
 | FR-026 | Detect uppercase variations with appropriate multiplier formulas | Research: zxcvbn | Must |
+| FR-038 | Detect reversed dictionary words (e.g., "drowssap" matches "password" reversed) and apply a 2x multiplier to the base rank | Research: zxcvbn | Should |
+| FR-039 | Define attacker profile presets specifying which estimators to run, which hardware tier to use, and which data assets to load. Minimum profiles: script_kiddie (Phase 1 estimators, consumer hardware), professional (all estimators, large_rig hardware), nation_state (all estimators, nation_state hardware) | PROJECT.md lines 94-97 | Should |
 
 ### Output
 

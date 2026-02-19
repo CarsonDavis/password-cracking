@@ -25,10 +25,12 @@ Four-phase plan to build the Password Crack-Time Simulator, from core framework 
 **3. Analytical estimators**
 - Brute force: `charset^length`
 - Dictionary: Substring matching against frequency-ranked wordlist; `rank * uppercase_vars * l33t_vars`
+- L33t-aware dictionary matching: Substitution table from zxcvbn, enumerate de-l33t variants, check against dictionary, binomial coefficient variation counting (FR-025, Must priority)
 - Keyboard walk: Spatial formula from zxcvbn (`starting_positions * avg_degree^turns * shift_vars`)
 - Mask: Match against common mask patterns, compute keyspace
 - Date: `year_space * 365 * separator_multiplier`
 - Sequence: `base_start * length * direction_multiplier`
+- Repeat: Recursive evaluation of base pattern, `guesses = base_guesses * repeat_count` (FR-012, Must priority)
 
 **4. DP decomposition engine**
 - Port zxcvbn's minimum-cost DP from CoffeeScript to Python
@@ -45,6 +47,13 @@ Four-phase plan to build the Password Crack-Time Simulator, from core framework 
 - `crack-time estimate <password> --hash <algorithm> --hardware <tier>`
 - JSON and human-readable output modes
 - Batch mode: `crack-time batch <password-file>` for evaluating password sets
+
+**6b. Phase 1 unit tests**
+- Unit tests for every Phase 1 estimator against known-answer test cases (see [Validation Strategy](08-validation-strategy.md))
+- Unit tests for the DP decomposition engine with hand-crafted match sets
+- Unit tests for the hardware calculator (known hash rate × known tier = expected value)
+- Integration test: full pipeline on at least 10 reference passwords from the test case table
+- *Note: The comprehensive validation suite (deliverable #22, Phase 4) includes cross-tool comparison and ground-truth Hashcat runs. But basic unit testing must happen in each phase alongside the code it validates — do not defer all testing to Phase 4.*
 
 ### Phase 1 Interfaces
 
@@ -127,6 +136,10 @@ class PasswordAnalysis:
     cardinality: int                            # Sum of charset sizes present (e.g. lower+upper+digit = 62)
     matches: list[Match] = field(default_factory=list)  # ALL detected matches (all types)
     pcfg_structure: str | None = None           # L/D/S tokenization (e.g., "L6D2S1")
+    # Note: pcfg_structure is populated by analyzer step [8] but consumed only by
+    # the PCFG estimator (Phase 2). Included here as a forward-looking field so the
+    # PasswordAnalysis interface remains stable across phases. In Phase 1, the analyzer
+    # MAY populate this field or leave it as None — the PCFG estimator is not yet active.
 
 # Convenience accessors:
 #   analysis.matches_of_type('dictionary')  -> list[DictionaryMatch]
@@ -221,10 +234,8 @@ def resolve_hash_rate(algorithm: str) -> float:
 - Additive smoothing with configurable delta
 - Default n-gram order 4
 
-**13. L33t-aware dictionary matching**
-- Substitution table from zxcvbn
-- Enumerate de-l33t variants, check against dictionary
-- Binomial coefficient variation counting
+**13. ~~L33t-aware dictionary matching~~ (Moved to Phase 1, deliverable #3)**
+- *L33t-aware dictionary matching is now part of Phase 1 analytical estimators (FR-025, Must priority). The analyzer already detects l33t substitutions in Phase 1 step [3]; the matching logic belongs alongside it to avoid producing detection output with no consumer.*
 
 **14. Improved DP decomposition**
 - Integrate new estimators as match sources for the DP
@@ -320,9 +331,8 @@ def pcfg_probability(password: str, grammar) -> float:
 - Probability = product of word frequency ranks
 - Probability-ordered position estimation
 
-**16. Repeat/pattern estimator**
-- Recursive evaluation of base pattern (call full pipeline on base)
-- `guesses = base_guesses * repeat_count`
+**16. ~~Repeat/pattern estimator~~ (Moved to Phase 1, deliverable #3)**
+- *Repeat estimation is now part of Phase 1 analytical estimators (FR-012, Must priority). The analyzer already detects repeats in Phase 1 step [7]; the estimation formula (`base_guesses * repeat_count`) is trivial and should not be deferred.*
 
 **17. Attacker profiles**
 - Predefined profiles: "script_kiddie" (Phase 1--2 techniques only), "professional" (all phases), "nation_state" (all + massive hardware)

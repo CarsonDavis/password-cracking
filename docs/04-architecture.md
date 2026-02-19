@@ -28,8 +28,8 @@ High-level architecture of the Password Crack-Time Simulator, including the pipe
     │ Estimators         │ │ Estimators      │ │ Estimators      │
     │                    │ │                 │ │                 │
     │ - Brute force      │ │ - PCFG          │ │ - Breach lookup │
-    │ - Dictionary       │ │ - Markov/OMEN   │ │ - Rainbow table │
-    │ - Rule-based       │ │ - Neural (opt.) │ │   check         │
+    │ - Dictionary       │ │ - Markov/OMEN   │ │                 │
+    │ - Rule-based       │ │ - Neural (opt.) │ │                 │
     │ - Keyboard walk    │ │                 │ │                 │
     │ - Mask             │ │                 │ │                 │
     │ - Date/sequence    │ │                 │ │                 │
@@ -61,6 +61,10 @@ High-level architecture of the Password Crack-Time Simulator, including the pipe
                         └──────────────────────┘
 ```
 
+### Excluded: Rainbow Table Check
+
+Rainbow table attacks are not modeled. Rainbow tables are pre-computed lookup tables that trade storage for computation time, but they are only effective against **unsalted** hashes (e.g., plain MD5, NTLM). All modern password hashing algorithms (bcrypt, scrypt, Argon2id) use per-password salts, rendering rainbow tables ineffective. Since GPU-based cracking dominates for both salted and unsalted hashes, the brute-force and dictionary estimators already cover the relevant attack surface. Rainbow table attacks against unsalted hashes are implicitly bounded by the dictionary/breach lookup estimators.
+
 ## Key Design Decisions
 
 1. **Common estimator interface:** Every attack strategy implements `estimate(analysis: PasswordAnalysis) -> EstimateResult`. The password string is available via `analysis.password`. Segment-level estimators return matches for the DP; whole-password estimators return a guess number directly. See [Implementation Roadmap](07-implementation-roadmap.md) for full type definitions.
@@ -70,6 +74,71 @@ High-level architecture of the Password Crack-Time Simulator, including the pipe
 3. **Independent estimators:** Each estimator is a self-contained module. Adding a new attack type means adding one file, not touching the core.
 
 4. **Hardware calculation is separate:** Estimators produce guess numbers (strategy-dependent, hardware-independent). The hardware calculator converts guess numbers to seconds (hash-rate-dependent).
+
+## Estimator Registration Mechanism
+
+To satisfy NFR-015 ("Adding a new estimator requires adding one file, no core modifications"), estimators are discovered automatically via module introspection. No explicit registration list is needed.
+
+**Discovery mechanism:** The orchestrator scans the `crack_time.estimators` package at startup, discovers all concrete subclasses of `Estimator`, and instantiates them.
+
+```python
+import importlib
+import pkgutil
+from crack_time.estimators.base import Estimator
+
+def discover_estimators() -> list[Estimator]:
+    """Auto-discover all Estimator subclasses in the estimators package.
+
+    To add a new estimator:
+      1. Create a new file in crack_time/estimators/ (e.g., my_estimator.py)
+      2. Define a class that extends Estimator and implements estimate()
+      3. Done — the orchestrator will find and use it automatically.
+
+    Estimators can opt out by setting a class attribute:
+      enabled = False
+    """
+    package = importlib.import_module('crack_time.estimators')
+    estimators = []
+
+    for importer, module_name, is_pkg in pkgutil.iter_modules(package.__path__):
+        module = importlib.import_module(f'crack_time.estimators.{module_name}')
+        for attr_name in dir(module):
+            attr = getattr(module, attr_name)
+            if (isinstance(attr, type)
+                and issubclass(attr, Estimator)
+                and attr is not Estimator
+                and getattr(attr, 'enabled', True)):
+                estimators.append(attr())
+
+    return estimators
+```
+
+**Estimator metadata:** Each estimator subclass should declare:
+
+```python
+class HybridEstimator(Estimator):
+    name = "hybrid"                   # Machine-readable identifier
+    display_name = "Hybrid Attack"    # Human-readable name for output
+    phase = 2                         # Implementation phase (for phased rollout)
+    estimator_type = "whole_password" # "segment_level" or "whole_password"
+    enabled = True                    # Set to False to disable without removing
+
+    def estimate(self, analysis: PasswordAnalysis) -> EstimateResult:
+        ...
+```
+
+## Configuration
+
+The simulator is configured via a JSON file (`crack-time.json`) with sensible defaults built in. CLI flags override file-based configuration.
+
+**Configurable categories:**
+
+- **Hardware:** Default hash algorithm, hardware tier, custom hash rates
+- **Estimators:** Enable/disable individual estimators, per-estimator timeout
+- **Data paths:** Wordlist directory, keyboard graphs, rule files, breach filter, PCFG grammar, Markov tables
+- **Rating thresholds:** Time-based strength rating boundaries
+
+The full configuration schema will be finalized during implementation.
 
 ## Technology Choices
 
