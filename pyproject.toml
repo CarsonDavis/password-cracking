@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "crack-time"
+version = "0.1.0"
+description = "Password crack-time simulator with analytical estimators"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.0",
+]
+
+[project.scripts]
+crack-time = "crack_time.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+crack_time = ["../../data/**/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
