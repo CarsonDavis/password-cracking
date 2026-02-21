@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from crack_time.data import load_l33t_table
 from crack_time.estimators.base import Estimator
 from crack_time.estimators.scoring import l33t_variations, uppercase_variations
 from crack_time.types import EstimateResult, L33tMatch, PasswordAnalysis
@@ -16,6 +17,7 @@ class L33tEstimator(Estimator):
     def estimate(self, analysis: PasswordAnalysis) -> EstimateResult:
         scored_matches = []
         best_guess = float("inf")
+        l33t_table = load_l33t_table()
 
         for match in analysis.matches:
             if not isinstance(match, L33tMatch):
@@ -23,7 +25,7 @@ class L33tEstimator(Estimator):
 
             guesses = match.rank
             guesses *= uppercase_variations(match.token)
-            guesses *= l33t_variations(match.token, match.sub_table)
+            guesses *= l33t_variations(match.word, l33t_table)
             guesses = max(guesses, 1)
 
             scored = L33tMatch(

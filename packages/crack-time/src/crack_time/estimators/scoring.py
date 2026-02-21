@@ -19,18 +19,16 @@ def uppercase_variations(token: str) -> int:
     return sum(comb(n, k) for k in range(1, min(u, n - u) + 1))
 
 
-def l33t_variations(token: str, sub_table: dict[str, str]) -> int:
-    """Compute l33t substitution variation multiplier (from zxcvbn).
+def l33t_variations(word: str, l33t_table: dict[str, list[str]]) -> int:
+    """Compute l33t variation multiplier: total l33t renderings of the word.
 
-    sub_table maps original_char -> l33t_char.
+    For each character, the attacker must try: keep original + each l33t
+    substitution. The product across all positions gives the full search space.
     """
-    if not sub_table:
+    if not word:
         return 1
     variations = 1
-    for original_char, l33t_char in sub_table.items():
-        s = sum(1 for c in token if c == l33t_char)
-        u = sum(1 for c in token if c == original_char)
-        if s == 0:
-            continue
-        variations *= sum(comb(s + u, k) for k in range(1, s + 1))
-    return max(variations, 2)  # minimum 2 for any l33t substitution
+    for char in word:
+        n_subs = len(l33t_table.get(char, []))
+        variations *= 1 + n_subs  # keep original + each l33t option
+    return max(variations, 1)
