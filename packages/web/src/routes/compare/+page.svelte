@@ -44,8 +44,8 @@
 
 <div class="mx-auto max-w-3xl space-y-6">
 	<div>
-		<h1 class="text-2xl font-bold text-gray-900">Compare Passwords</h1>
-		<p class="mt-1 text-sm text-gray-500">See how different passwords stack up side by side.</p>
+		<h1 class="text-2xl font-bold tracking-tight text-heading">Compare Passwords</h1>
+		<p class="mt-1 text-sm text-body">See how different passwords stack up side by side.</p>
 	</div>
 
 	<div class="space-y-3">
@@ -59,27 +59,27 @@
 					/>
 				</div>
 				{#if passwords.length > 2}
-					<button onclick={() => removeField(i)} class="text-red-500 hover:text-red-700">&times;</button>
+					<button onclick={() => removeField(i)} class="text-red-400 transition-colors duration-150 hover:text-red-300">&times;</button>
 				{/if}
 			</div>
 		{/each}
-		<button onclick={addField} class="text-sm text-blue-600 hover:text-blue-800">+ Add password</button>
+		<button onclick={addField} class="text-sm text-accent transition-colors duration-150 hover:text-accent-hover">+ Add password</button>
 	</div>
 
 	<button
 		onclick={compare}
 		disabled={loading}
-		class="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+		class="w-full rounded-lg border border-accent bg-accent/10 px-4 py-3 font-medium text-accent transition-colors duration-150 hover:bg-accent/20 disabled:opacity-50"
 	>
 		{loading ? 'Comparing...' : 'Compare'}
 	</button>
 
 	{#if error}
-		<div class="rounded-md bg-red-50 p-4 text-sm text-red-700">{error}</div>
+		<div class="rounded-lg bg-red-900/20 p-4 text-sm text-red-400">{error}</div>
 	{/if}
 
 	{#if results.length > 0}
-		<div class="space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="card space-y-6 rounded-lg border border-edge bg-panel p-6">
 			<CrackTimeChart {results} labelKey="password" />
 			<ComparisonTable {results} labelKey="password" />
 		</div>

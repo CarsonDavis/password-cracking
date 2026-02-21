@@ -51,8 +51,8 @@
 
 <div class="mx-auto max-w-3xl space-y-6">
 	<div>
-		<h1 class="text-2xl font-bold text-gray-900">Attacker Profiles</h1>
-		<p class="mt-1 text-sm text-gray-500">
+		<h1 class="text-2xl font-bold tracking-tight text-heading">Attacker Profiles</h1>
+		<p class="mt-1 text-sm text-body">
 			Compare crack times across different attacker hardware capabilities.
 		</p>
 	</div>
@@ -61,12 +61,12 @@
 
 	{#if metadata}
 		<div>
-			<p class="mb-2 text-sm font-medium text-gray-700">Select attacker profiles:</p>
+			<p class="mb-2 text-sm font-medium text-body">Select attacker profiles:</p>
 			<div class="flex flex-wrap gap-2">
 				{#each metadata.hardware_tiers as tier}
 					<button
 						onclick={() => toggleTier(tier.name)}
-						class="rounded-full border px-3 py-1 text-xs {selectedTiers.includes(tier.name) ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-300 text-gray-500'}"
+						class="rounded-full border px-3 py-1 text-xs transition-colors duration-150 {selectedTiers.includes(tier.name) ? 'border-accent bg-accent/10 text-accent' : 'border-edge text-body hover:border-accent hover:text-accent'}"
 					>
 						{tier.name} ({tier.description})
 					</button>
@@ -78,17 +78,17 @@
 	<button
 		onclick={compare}
 		disabled={loading || !password}
-		class="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+		class="w-full rounded-lg border border-accent bg-accent/10 px-4 py-3 font-medium text-accent transition-colors duration-150 hover:bg-accent/20 disabled:opacity-50"
 	>
 		{loading ? 'Comparing...' : 'Compare Attackers'}
 	</button>
 
 	{#if error}
-		<div class="rounded-md bg-red-50 p-4 text-sm text-red-700">{error}</div>
+		<div class="rounded-lg bg-red-900/20 p-4 text-sm text-red-400">{error}</div>
 	{/if}
 
 	{#if results.length > 0}
-		<div class="space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="card space-y-6 rounded-lg border border-edge bg-panel p-6">
 			<CrackTimeChart {results} labelKey="hardware_tier" />
 			<ComparisonTable {results} labelKey="hardware_tier" />
 		</div>

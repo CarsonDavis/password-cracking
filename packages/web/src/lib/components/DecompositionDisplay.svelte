@@ -28,7 +28,7 @@
 			<span class="font-mono text-sm font-bold" style="color: {colorFor(seg.type)}"
 				>{seg.segment}</span
 			>
-			<span class="text-[10px] text-gray-500">{seg.type}</span>
+			<span class="text-[10px] text-body">{seg.type}</span>
 		</span>
 	{/each}
 </div>

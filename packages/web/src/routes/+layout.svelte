@@ -30,28 +30,33 @@
 	];
 </script>
 
-<div class="min-h-screen bg-gray-50">
-	<header class="border-b border-gray-200 bg-white shadow-sm">
+<div class="min-h-screen bg-canvas">
+	<header class="border-b border-edge bg-panel">
 		<div class="mx-auto max-w-6xl px-4 py-3">
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-6">
-					<a href="/" class="text-lg font-bold text-gray-900">Crack-Time</a>
+					<a href="/" class="text-lg font-bold text-heading tracking-tight">Crack-Time</a>
 					<nav class="hidden gap-4 md:flex">
 						{#each navLinks as link}
-							<a href={link.href} class="text-sm text-gray-600 hover:text-gray-900">{link.label}</a>
+							<a
+								href={link.href}
+								class="text-sm text-body transition-colors duration-150 hover:text-accent"
+							>
+								{link.label}
+							</a>
 						{/each}
 					</nav>
 				</div>
 				<button
 					onclick={() => (settingsOpen = !settingsOpen)}
-					class="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
+					class="rounded-md border border-edge px-3 py-1.5 text-sm text-body transition-colors duration-150 hover:border-accent hover:text-accent"
 				>
 					Settings
 				</button>
 			</div>
 
 			{#if settingsOpen && metadata}
-				<div class="mt-3 grid grid-cols-1 gap-4 border-t border-gray-100 pt-3 md:grid-cols-2">
+				<div class="mt-3 grid grid-cols-1 gap-4 border-t border-edge pt-3 md:grid-cols-2">
 					<AlgorithmSelector bind:value={$algorithm} options={metadata.algorithms} />
 					<HardwareSelector bind:value={$hardwareTier} options={metadata.hardware_tiers} />
 				</div>

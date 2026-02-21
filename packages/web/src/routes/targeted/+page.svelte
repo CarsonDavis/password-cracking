@@ -32,8 +32,8 @@
 
 <div class="mx-auto max-w-2xl space-y-6">
 	<div>
-		<h1 class="text-2xl font-bold text-gray-900">Targeted Attack Simulation</h1>
-		<p class="mt-1 text-sm text-gray-500">
+		<h1 class="text-2xl font-bold tracking-tight text-heading">Targeted Attack Simulation</h1>
+		<p class="mt-1 text-sm text-body">
 			Evaluate password strength considering an attacker who knows personal information about the target.
 		</p>
 	</div>
@@ -44,36 +44,36 @@
 	<button
 		onclick={evaluate}
 		disabled={!password || loading}
-		class="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+		class="w-full rounded-lg border border-accent bg-accent/10 px-4 py-3 font-medium text-accent transition-colors duration-150 hover:bg-accent/20 disabled:opacity-50"
 	>
 		{loading ? 'Analyzing...' : 'Evaluate with Context'}
 	</button>
 
 	{#if error}
-		<div class="rounded-md bg-red-50 p-4 text-sm text-red-700">{error}</div>
+		<div class="rounded-lg bg-red-900/20 p-4 text-sm text-red-400">{error}</div>
 	{/if}
 
 	{#if result}
-		<div class="space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="card space-y-6 rounded-lg border border-edge bg-panel p-6">
 			<StrengthMeter
 				rating={result.rating}
 				ratingLabel={result.rating_label}
 				crackTimeDisplay={result.crack_time_display}
 			/>
 
-			<p class="text-sm text-gray-500">
-				Best attack: <span class="font-medium text-gray-700">{result.winning_attack}</span>
+			<p class="text-sm text-body">
+				Best attack: <span class="font-medium text-heading">{result.winning_attack}</span>
 			</p>
 
 			{#if result.decomposition.length > 0}
 				<div>
-					<h3 class="mb-2 text-sm font-medium text-gray-700">Decomposition</h3>
+					<h3 class="mb-2 text-sm font-medium text-body">Decomposition</h3>
 					<DecompositionDisplay segments={result.decomposition} />
 				</div>
 			{/if}
 
 			<div>
-				<h3 class="mb-2 text-sm font-medium text-gray-700">Strategies</h3>
+				<h3 class="mb-2 text-sm font-medium text-body">Strategies</h3>
 				<StrategyBreakdown strategies={result.strategies} />
 			</div>
 		</div>

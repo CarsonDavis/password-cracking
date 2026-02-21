@@ -38,7 +38,13 @@
 				scales: {
 					x: {
 						type: 'logarithmic',
-						title: { display: true, text: 'Seconds (log scale)' }
+						title: { display: true, text: 'Seconds (log scale)', color: '#a7a096' },
+						ticks: { color: '#a7a096' },
+						grid: { color: '#3c414340' }
+					},
+					y: {
+						ticks: { color: '#e8e6e3' },
+						grid: { color: '#3c414340' }
 					}
 				},
 				plugins: {
@@ -62,7 +68,6 @@
 	});
 
 	$effect(() => {
-		// Re-render when results change
 		if (results && canvas) buildChart();
 	});
 </script>

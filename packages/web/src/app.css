@@ -1,1 +1,34 @@
 @import 'tailwindcss';
+
+@theme {
+	--color-canvas: #181a1b;
+	--color-panel: #1e2021;
+	--color-input: #282a2b;
+	--color-edge: #3c4143;
+	--color-heading: #e8e6e3;
+	--color-body: #a7a096;
+	--color-accent: #8eb4f1;
+	--color-accent-hover: #b1cbf5;
+}
+
+html,
+body {
+	background-color: var(--color-canvas);
+	color: var(--color-heading);
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial,
+		sans-serif;
+	line-height: 1.6;
+}
+
+/* Card hover effect — matches code-by-carson pattern */
+.card {
+	transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+}
+
+@media (hover: hover) {
+	.card:hover {
+		transform: translateY(-3px);
+		border-color: var(--color-accent);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+	}
+}

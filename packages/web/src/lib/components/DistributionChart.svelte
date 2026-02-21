@@ -36,7 +36,10 @@
 				responsive: true,
 				maintainAspectRatio: false,
 				plugins: {
-					legend: { position: 'right' }
+					legend: {
+						position: 'right',
+						labels: { color: '#e8e6e3' }
+					}
 				}
 			}
 		});

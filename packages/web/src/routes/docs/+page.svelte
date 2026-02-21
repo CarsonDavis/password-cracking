@@ -47,11 +47,11 @@
 
 <div class="mx-auto max-w-3xl space-y-6">
 	<div>
-		<h1 class="text-2xl font-bold text-gray-900">API Reference</h1>
-		<p class="mt-1 text-sm text-gray-500">
+		<h1 class="text-2xl font-bold tracking-tight text-heading">API Reference</h1>
+		<p class="mt-1 text-sm text-body">
 			The FastAPI server provides a REST API for password crack-time estimation.
 			Full interactive docs are available at
-			<a href="http://localhost:8000/docs" target="_blank" class="text-blue-600 hover:underline">
+			<a href="http://localhost:8000/docs" target="_blank" class="text-accent transition-colors duration-150 hover:text-accent-hover hover:underline">
 				localhost:8000/docs
 			</a> (Swagger UI).
 		</p>
@@ -59,14 +59,14 @@
 
 	<div class="space-y-4">
 		{#each endpoints as ep}
-			<div class="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+			<div class="card rounded-lg border border-edge bg-panel p-4">
 				<div class="flex items-center gap-3">
-					<span class="rounded bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">{ep.method}</span>
-					<code class="text-sm font-medium">{ep.path}</code>
+					<span class="rounded bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent">{ep.method}</span>
+					<code class="text-sm font-medium text-heading">{ep.path}</code>
 				</div>
-				<p class="mt-2 text-sm text-gray-600">{ep.description}</p>
+				<p class="mt-2 text-sm text-body">{ep.description}</p>
 				{#if ep.body}
-					<pre class="mt-2 overflow-x-auto rounded bg-gray-50 p-3 text-xs text-gray-700">{ep.body}</pre>
+					<pre class="mt-2 overflow-x-auto rounded bg-canvas p-3 text-xs text-body">{ep.body}</pre>
 				{/if}
 			</div>
 		{/each}

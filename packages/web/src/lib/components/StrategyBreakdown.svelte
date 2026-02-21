@@ -16,20 +16,20 @@
 <div class="overflow-x-auto">
 	<table class="min-w-full text-sm">
 		<thead>
-			<tr class="border-b border-gray-200 text-left text-gray-500">
+			<tr class="border-b border-edge text-left text-body">
 				<th class="py-2 pr-4 font-medium">Strategy</th>
 				<th class="py-2 pr-4 font-medium">Guesses</th>
 			</tr>
 		</thead>
 		<tbody>
 			{#each sorted as [name, info]}
-				<tr class="border-b border-gray-100">
-					<td class="py-2 pr-4 font-mono text-xs">{info.attack_name}</td>
-					<td class="py-2 pr-4">
+				<tr class="border-b border-edge/50">
+					<td class="py-2 pr-4 font-mono text-xs text-body">{info.attack_name}</td>
+					<td class="py-2 pr-4 text-heading">
 						{#if info.guess_number !== null}
 							{formatNumber(info.guess_number)}
 						{:else}
-							<span class="text-gray-400">N/A</span>
+							<span class="text-edge">N/A</span>
 						{/if}
 					</td>
 				</tr>

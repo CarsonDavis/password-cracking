@@ -29,8 +29,8 @@
 
 <div class="mx-auto max-w-2xl space-y-6">
 	<div>
-		<h1 class="text-2xl font-bold text-gray-900">Password Strength Evaluator</h1>
-		<p class="mt-1 text-sm text-gray-500">
+		<h1 class="text-2xl font-bold tracking-tight text-heading">Password Strength Evaluator</h1>
+		<p class="mt-1 text-sm text-body">
 			Estimate how long it would take to crack a password using analytical attack models.
 		</p>
 	</div>
@@ -41,18 +41,18 @@
 		<button
 			onclick={evaluate}
 			disabled={!password || loading}
-			class="w-full rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+			class="w-full rounded-lg border border-accent bg-accent/10 px-4 py-3 font-medium text-accent transition-colors duration-150 hover:bg-accent/20 disabled:cursor-not-allowed disabled:opacity-50"
 		>
 			{loading ? 'Analyzing...' : 'Evaluate'}
 		</button>
 	</div>
 
 	{#if error}
-		<div class="rounded-md bg-red-50 p-4 text-sm text-red-700">{error}</div>
+		<div class="rounded-lg bg-red-900/20 p-4 text-sm text-red-400">{error}</div>
 	{/if}
 
 	{#if result}
-		<div class="space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+		<div class="card space-y-6 rounded-lg border border-edge bg-panel p-6">
 			<StrengthMeter
 				rating={result.rating}
 				ratingLabel={result.rating_label}
@@ -60,23 +60,23 @@
 			/>
 
 			<div class="space-y-1">
-				<p class="text-sm text-gray-500">
-					Best attack: <span class="font-medium text-gray-700">{result.winning_attack}</span>
+				<p class="text-sm text-body">
+					Best attack: <span class="font-medium text-heading">{result.winning_attack}</span>
 				</p>
-				<p class="text-sm text-gray-500">
-					Hash rate: <span class="font-medium text-gray-700">{result.effective_hash_rate.toLocaleString()} H/s</span>
+				<p class="text-sm text-body">
+					Hash rate: <span class="font-medium text-heading">{result.effective_hash_rate.toLocaleString()} H/s</span>
 				</p>
 			</div>
 
 			{#if result.decomposition.length > 0}
 				<div>
-					<h3 class="mb-2 text-sm font-medium text-gray-700">Password Decomposition</h3>
+					<h3 class="mb-2 text-sm font-medium text-body">Password Decomposition</h3>
 					<DecompositionDisplay segments={result.decomposition} />
 				</div>
 			{/if}
 
 			<div>
-				<h3 class="mb-2 text-sm font-medium text-gray-700">Attack Strategies</h3>
+				<h3 class="mb-2 text-sm font-medium text-body">Attack Strategies</h3>
 				<StrategyBreakdown strategies={result.strategies} />
 			</div>
 		</div>

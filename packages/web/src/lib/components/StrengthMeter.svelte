@@ -10,9 +10,9 @@
 <div class="space-y-2">
 	<div class="flex items-center justify-between">
 		<span class="text-sm font-medium" style="color: {color}">{ratingLabel} ({rating}/4)</span>
-		<span class="text-sm text-gray-500">~{crackTimeDisplay}</span>
+		<span class="text-sm text-body">~{crackTimeDisplay}</span>
 	</div>
-	<div class="h-3 w-full overflow-hidden rounded-full bg-gray-200">
+	<div class="h-3 w-full overflow-hidden rounded-full bg-edge">
 		<div
 			class="h-full rounded-full transition-all duration-500"
 			style="width: {widthPercent}%; background-color: {color}"

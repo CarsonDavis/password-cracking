@@ -15,7 +15,7 @@
 </script>
 
 <div class="space-y-2">
-	<p class="block text-sm font-medium text-gray-700">Personal Context (names, dates, pets, etc.)</p>
+	<p class="block text-sm font-medium text-body">Personal Context (names, dates, pets, etc.)</p>
 	{#each items as item, i}
 		<div class="flex gap-2">
 			<input
@@ -23,11 +23,11 @@
 				value={item}
 				oninput={(e) => update(i, (e.target as HTMLInputElement).value)}
 				placeholder="e.g., john, 1990, fluffy"
-				class="flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+				class="flex-1 rounded-md border border-edge bg-input px-3 py-1.5 text-sm text-heading placeholder-body focus:border-accent focus:ring-1 focus:ring-accent/30 focus:outline-none"
 			/>
 			<button
 				onclick={() => remove(i)}
-				class="rounded-md px-2 text-red-500 hover:bg-red-50"
+				class="rounded-md px-2 text-red-400 transition-colors duration-150 hover:bg-red-900/30"
 				aria-label="Remove"
 			>
 				&times;
@@ -36,7 +36,7 @@
 	{/each}
 	<button
 		onclick={add}
-		class="text-sm text-blue-600 hover:text-blue-800"
+		class="text-sm text-accent transition-colors duration-150 hover:text-accent-hover"
 	>
 		+ Add context item
 	</button>

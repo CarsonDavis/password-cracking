@@ -9,7 +9,7 @@
 <div class="overflow-x-auto">
 	<table class="min-w-full text-sm">
 		<thead>
-			<tr class="border-b border-gray-200 text-left text-gray-500">
+			<tr class="border-b border-edge text-left text-body">
 				<th class="py-2 pr-4 font-medium">
 					{labelKey === 'password' ? 'Password' : labelKey === 'hash_algorithm' ? 'Algorithm' : 'Hardware'}
 				</th>
@@ -21,12 +21,12 @@
 		</thead>
 		<tbody>
 			{#each results as r}
-				<tr class="border-b border-gray-100">
-					<td class="py-2 pr-4 font-mono">{(r as Record<string, unknown>)[labelKey]}</td>
-					<td class="py-2 pr-4">{r.crack_time_display}</td>
+				<tr class="border-b border-edge/50">
+					<td class="py-2 pr-4 font-mono text-heading">{(r as Record<string, unknown>)[labelKey]}</td>
+					<td class="py-2 pr-4 text-heading">{r.crack_time_display}</td>
 					<td class="py-2 pr-4"><RatingBadge rating={r.rating} label={r.rating_label} /></td>
-					<td class="py-2 pr-4">{formatNumber(r.guess_number)}</td>
-					<td class="py-2 pr-4 text-xs text-gray-600">{r.winning_attack}</td>
+					<td class="py-2 pr-4 text-heading">{formatNumber(r.guess_number)}</td>
+					<td class="py-2 pr-4 text-xs text-body">{r.winning_attack}</td>
 				</tr>
 			{/each}
 		</tbody>

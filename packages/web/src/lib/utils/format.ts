@@ -8,11 +8,11 @@ export const RATING_COLORS: Record<number, string> = {
 };
 
 export const RATING_BG_COLORS: Record<number, string> = {
-	0: '#fef2f2', // red-50
-	1: '#fff7ed', // orange-50
-	2: '#fefce8', // yellow-50
-	3: '#f0fdf4', // green-50
-	4: '#ecfdf5' // emerald-50
+	0: '#450a0a', // red-950
+	1: '#431407', // orange-950
+	2: '#422006', // yellow-950
+	3: '#052e16', // green-950
+	4: '#022c22' // emerald-950
 };
 
 /** Format large numbers with commas. */
